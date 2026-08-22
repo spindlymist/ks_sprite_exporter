@@ -1,0 +1,29 @@
+# Config files
+**/.vscode
+**/.vs
+
+# Build artifacts
+/build
+*.pyc
+*.pyd
+**/__pycache__
+*.cpp
+*.c
+
+# Allow specific c/cpp source files
+!/mmfparser/maxrects/**/*.cpp
+!/mmfparser/webp/**/*.cpp
+!/mmfparser/zopfli/**/*.cpp
+!/mmfparser/player/extensions/AdvGameboard/**/*.cpp
+!/mmfparser/data/chunk_cm.cpp
+!/mmfparser/stb_image.c
+!/mmfparser/data/tinflate.c
+!/mmfparser/player/minIni.c
+!/mmfparser/player/pmask.c
+!/mmfparser/webp/**/*.c
+!/mmfparser/zopfli/**/*.c
+
+# Inputs/outputs
+*.mfa
+*.json
+*.txt
