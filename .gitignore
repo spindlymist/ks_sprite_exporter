@@ -27,3 +27,9 @@
 *.mfa
 *.json
 *.txt
+/output
+
+# Allow specific files
+!/names.txt
+!/COPYING.txt
+!/multiobjects.json
