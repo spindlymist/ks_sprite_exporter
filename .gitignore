@@ -27,6 +27,7 @@
 *.mfa
 *.json
 *.txt
+*.zip
 /output
 
 # Allow specific files

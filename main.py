@@ -60,9 +60,8 @@ def main():
 
     ignore_folders = ["Bars, credits", "Movement Engine", "System Engine", "Map Inv"]
 
-    has_moving_hotspot = []
-    has_variable_speed = []
     all_metadata = {}
+    speeds = {}
 
     for item in frame_handle.items:
         folder = folder_lookup[item.handle]
@@ -90,30 +89,47 @@ def main():
                 n_frames = len(direction.frames)
                 if n_frames == 0: continue
 
-                # First, iterate over all frames and find the largest offsets relative to the first frame
-                first_frame_handle = direction.frames[0]
-                first_image = image_lookup[first_frame_handle]
-                initial_hotspot_x = first_image.xHotspot
-                initial_hotspot_y = first_image.yHotspot
-                offset_min_x = 0
-                offset_min_y = 0
-                offset_max_x = 0
-                offset_max_y = 0
+                # First, iterate over all frames and find the largest offsets from the hotspot
+                extents_left = []
+                extents_right = []
+                extents_top = []
+                extents_bot = []
 
-                for frame_handle in direction.frames[1:]:
+                for (frame_index, frame_handle) in enumerate(direction.frames):
                     image = image_lookup[frame_handle]
-                    hotspot_offset_x = image.xHotspot - initial_hotspot_x
-                    hotspot_offset_y = image.yHotspot - initial_hotspot_y
-                    offset_min_x = min(offset_min_x, hotspot_offset_x)
-                    offset_min_y = min(offset_min_y, hotspot_offset_y)
-                    offset_max_x = max(offset_max_x, hotspot_offset_x)
-                    offset_max_y = max(offset_max_y, hotspot_offset_y)
+                    
+                    if image.xHotspot < 0:
+                        left = 0
+                        right = image.width + abs(image.xHotspot)
+                    elif image.xHotspot >= image.width:
+                        left = -(image.width + (image.xHotspot - image.width))
+                        right = 1
+                    else:
+                        left = -image.xHotspot
+                        right = image.width - image.xHotspot
+
+                    if image.yHotspot < 0:
+                        top = 0
+                        bot = image.height + abs(image.yHotspot)
+                    elif image.yHotspot >= image.height:
+                        top = -(image.height + (image.yHotspot - image.height))
+                        bot = 1
+                    else:
+                        top = -image.yHotspot
+                        bot = image.height - image.yHotspot
+                    
+                    extents_left.append(left)
+                    extents_top.append(top)
+                    extents_right.append(right)
+                    extents_bot.append(bot)
 
                 # Expand the frame size to account for the largest offsets
-                frame_width = first_image.width + abs(offset_min_x) + offset_max_x
-                frame_height = first_image.height + abs(offset_min_y) + offset_max_y
-                origin_offset_x = offset_max_x
-                origin_offset_y = offset_max_y
+                extents_left_min = min(extents_left)
+                extents_right_max = max(extents_right)
+                extents_top_min = min(extents_top)
+                extents_bot_max = max(extents_bot)
+                frame_width = extents_right_max + abs(extents_left_min)
+                frame_height = extents_bot_max + abs(extents_top_min)
 
                 # Create the spritesheet
                 total_width = n_frames * frame_width
@@ -122,6 +138,7 @@ def main():
                 # Copy each frame into the spritesheet
                 for (frame_index, frame_handle) in enumerate(direction.frames):
                     image = image_lookup[frame_handle]
+
                     if frame_handle not in frame_lookup:
                         byte_data = bytearray(image.getImageData());
                         pixel_data = []
@@ -134,11 +151,22 @@ def main():
                     else:
                         frame = frame_lookup[frame_handle]
 
-                    hotspot_offset_x = image.xHotspot - initial_hotspot_x
-                    hotspot_offset_y = image.yHotspot - initial_hotspot_y
-                    origin_x = frame_index * frame_width + origin_offset_x - hotspot_offset_x
-                    origin_y = origin_offset_y - hotspot_offset_y
-                    spritesheet.paste(frame, (origin_x, origin_y))
+                    left = extents_left[frame_index]
+                    right = extents_right[frame_index]
+                    top = extents_top[frame_index]
+                    bot = extents_bot[frame_index]
+
+                    width = right - left
+                    height = bot - top
+                    if width != frame.width or height != frame.height:
+                        align_right = image.xHotspot < 0
+                        align_bot = image.yHotspot < 0
+                        frame = image_resize_canvas(frame, width, height, align_right, align_bot)
+
+                    frame_origin_x = frame_index * frame_width
+                    offset_x = left - extents_left_min
+                    offset_y = top - extents_top_min
+                    spritesheet.paste(frame, (frame_origin_x + offset_x, offset_y))
 
                 output_name = get_output_name(bank, obj, item_name, anim_name, direction.index, multiobjects_lookup)
                 if output_name is None:
@@ -147,9 +175,8 @@ def main():
                 spritesheet.save("output/" + output_name)
 
                 if direction.minSpeed != direction.maxSpeed:
-                    has_variable_speed.append(output_name)
-                if frame_width != first_image.width or frame_height != first_image.height:
-                    has_moving_hotspot.append(output_name)
+                    print("Speeds differ for", item_name, anim_name, direction.index)
+
                 anim_meta = {
                     "minSpeed": direction.minSpeed,
                     "maxSpeed": direction.maxSpeed,
@@ -157,15 +184,12 @@ def main():
                     "backTo": direction.backTo,
                 }
                 all_metadata[output_name] = anim_meta
+                speeds[output_name] = direction.minSpeed
 
     with open("animation_meta.json", "w") as f:
         json.dump(all_metadata, f)
-    with open("has_variable_speed.txt", "w") as f:
-        for name in has_variable_speed:
-            f.write(name + "\n")
-    with open("has_moving_hotspot.txt", "w") as f:
-        for name in has_moving_hotspot:
-            f.write(name + "\n")
+    with open("animation_speeds.json", "w") as f:
+        json.dump(speeds, f)
 
 def load_mfa(path):
     reader = ByteReader(open(path, 'rb'))
@@ -225,6 +249,19 @@ def get_output_name(bank, obj, item_name, anim_name, direction, multiobjects_loo
         output_name += "_" + str(direction)
     
     return output_name + ".png"
+
+def image_resize_canvas(image, new_width, new_height, align_right, align_bot):
+    new_image = Image.new("RGBA", (new_width, new_height), (0, 0, 0, 0))
+    if align_right:
+        x = new_width - image.width
+    else:
+        x = 0
+    if align_bot:
+        y = new_height - image.height
+    else:
+        y = 0
+    new_image.paste(image, (x, y))
+    return new_image
 
 def convert_to_snake_case(s):
     return "_".join(part.lower() for part in s.split(" "))
