@@ -60,8 +60,8 @@ def main():
 
     ignore_folders = ["Bars, credits", "Movement Engine", "System Engine", "Map Inv"]
 
-    all_metadata = {}
-    speeds = {}
+    all_anim_data = {}
+    all_item_data = {}
 
     for item in frame_handle.items:
         folder = folder_lookup[item.handle]
@@ -76,6 +76,20 @@ def main():
         
         animations = item.loader.items or []
         if len(animations) == 0: continue
+
+        item_data = {}
+        n_values = len(item.loader.values.items)
+        if n_values > 0:
+            offsetX = item.loader.values.items[0]
+            if offsetX.name not in ["X Offset", "OffsetX", "OrginX"]:
+                print(item.name, "alterable value A named", offsetX.name)
+            item_data["offsetX"] = offsetX.value
+        if n_values > 1:
+            offsetY = item.loader.values.items[1]
+            if offsetY.name not in ["Y Offset", "OffsetY", "OrginY"]:
+                print(item.name, "alterable value B named", offsetY.name)
+            item_data["offsetY"] = offsetY.value
+        all_item_data[item.name] = item_data
         
         for (anim_index, animation) in enumerate(animations):
             has_frames = \
@@ -177,19 +191,18 @@ def main():
                 if direction.minSpeed != direction.maxSpeed:
                     print("Speeds differ for", item_name, anim_name, direction.index)
 
-                anim_meta = {
-                    "minSpeed": direction.minSpeed,
-                    "maxSpeed": direction.maxSpeed,
+                anim_data = {
+                    "speed": direction.minSpeed,
                     "repeat": direction.repeat,
                     "backTo": direction.backTo,
                 }
-                all_metadata[output_name] = anim_meta
-                speeds[output_name] = direction.minSpeed
+                
+                all_anim_data[output_name] = anim_data
 
-    with open("animation_meta.json", "w") as f:
-        json.dump(all_metadata, f)
-    with open("animation_speeds.json", "w") as f:
-        json.dump(speeds, f)
+    with open("anim_data.json", "w") as f:
+        json.dump(all_anim_data, f)
+    with open("item_data.json", "w") as f:
+        json.dump(all_item_data, f)
 
 def load_mfa(path):
     reader = ByteReader(open(path, 'rb'))
