@@ -18,9 +18,35 @@
 from mmfparser.loader import DataLoader
 import hashlib
 
+from mmfparser.bitdict import BitDict
+from mmfparser.bytereader import ByteReader
+class ImageItemTypeStub:
+    handle = None # type: int
+    checksum = None # type: int
+    references = None # type: int
+    width = None # type: int
+    height = None # type: int
+    xHotspot = None # type: int
+    yHotspot = None # type: int
+    actionX = None # type: int
+    actionY = None # type: int
+    flags = None # type: BitDict
+    image = None # type: str
+    alpha = None # type: str|None
+    indexed = None # type: int
+    graphicMode = None # type: str
+    transparent = None # type: tuple[int, int, int]
+    reader = None # type: ByteReader|None
+    pos = None # type: int
+
 class AGMIBank(DataLoader):
-    palette = None
-    graphicMode = 4
+    graphicMode = 4 # type: int
+    paletteVersion = None # type: int
+    paletteEntries = None # type: int
+    palette = None # type: list[tuple[int, int, int]]
+    items = None # type: list[ImageItemTypeStub]
+    itemDict = None # type: dict[int, ImageItemTypeStub]
+
     def initialize(self):
         self.items = []
         self.itemDict = {}

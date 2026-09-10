@@ -76,8 +76,8 @@ DOUBLE_TYPE = 1
 STRING_TYPE = 2
 
 class ValueItem(DataLoader):
-    name = None
-    value = None
+    name = None # type: str
+    value = None # type: str|int|float
 
     def read(self, reader):
         self.name = reader.read(reader.readInt())
@@ -108,7 +108,7 @@ class ValueItem(DataLoader):
             raise Exception('invalid value type')
 
 class ValueList(DataLoader):
-    items = None
+    items = None # type: list[ValueItem]
 
     def initialize(self):
         self.items = []
@@ -409,7 +409,16 @@ class Behaviours(DataLoader):
             item.write(reader)
 
 class ObjectLoader(DataLoader):
-    fadeIn = fadeOut = None
+    objectFlags = None # type: BitDict
+    newObjectFlags = None # type: BitDict
+    backgroundColor = None # type: tuple[int, int, int]
+    qualifiers = None # type: list[int]
+    values = None # type: ValueList
+    strings = None # type: ValueList
+    movements = None # type: Movements
+    behaviours = None # type: Behaviours
+    fadeIn = None # type: Transition|None
+    fadeOut = None # type: Transition|None
     def initialize(self):
         self.objectFlags = OBJECT_FLAGS.copy()
         self.newObjectFlags = NEW_OBJECT_FLAGS.copy()
@@ -461,6 +470,13 @@ class ObjectLoader(DataLoader):
                 item.write(reader)
 
 class AnimationDirection(DataLoader):
+    index = None # type: int
+    minSpeed = None # type: int
+    maxSpeed = None # type: int
+    repeat = None # type: int
+    backTo = None # type: int
+    frames = None # type: list[int]
+
     def read(self, reader):
         self.index = reader.readInt(True)
         self.minSpeed = reader.readInt(True)
@@ -481,7 +497,9 @@ class AnimationDirection(DataLoader):
             reader.writeInt(item)
 
 class Animation(DataLoader):
-    name = None
+    name = None # type: str
+    directions = None # type: list[AnimationDirection]
+
     def read(self, reader):
         self.name = reader.read(reader.readInt(True))
         directionCount = reader.readInt(True)
@@ -495,7 +513,8 @@ class Animation(DataLoader):
             item.write(reader)
 
 class AnimationObject(ObjectLoader):
-    items = None
+    items = None # type: list[Animation]
+
     def read(self, reader):
         ObjectLoader.read(self, reader)
         if reader.readByte() != 0:
@@ -817,6 +836,18 @@ ITEM_FLAGS = BitDict(
 )
 
 class FrameItem(DataLoader):
+    objectType = None # type: int
+    handle = None # type: int
+    name = None # type: str
+    transparent = None # type: bool
+    inkEffect = None # type: int
+    inkEffectParameter = None # type: int
+    antiAliasing = None # type: bool
+    flags = None # type: BitDict
+    iconHandle = None # type: int|None
+    chunks = None # type: ChunkList
+    loader = None # type: object
+
     def initialize(self):
         self.flags = ITEM_FLAGS.copy()
 
@@ -856,7 +887,9 @@ class FrameItem(DataLoader):
         self.loader.write(reader)
 
 class ItemFolder(DataLoader):
-    name = None
+    name = None # type: str
+    items = None # type: list[int]
+
     def read(self, reader):
         value = reader.readInt(True)
         if value == 0x70000004: # folder
@@ -878,6 +911,15 @@ class ItemFolder(DataLoader):
             reader.writeInt(item, True)
 
 class FrameInstance(DataLoader):
+    x = None # type: int
+    y = None # type: int
+    layer = None # type: int
+    handle = None # type: int
+    flags = None # type: int
+    parentType = None # type: int
+    itemHandle = None # type: int
+    parentHandle = None # type: int
+
     def read(self, reader):
         self.x = reader.readInt()
         self.y = reader.readInt()
@@ -1079,15 +1121,22 @@ class Events(DataLoader):
         reader.write(EVENT_END)
 
 class Frame(DataLoader):
-    handle = None
-    name = None
-    size = None
-    background = None
-    maxObjects = None
-    password = None
-    palette = None
-    fadeIn = None
-    fadeOut = None
+    handle = None # type: int
+    name = None # type: str
+    size = None # type: tuple[int, int]
+    background = None # type: tuple[int, int, int]
+    flags = None # type: BitDict
+    maxObjects = None # type: int
+    password = None # type: int
+    palette = None # type: list[tuple[int, int, int]]
+    fadeIn = None # type: Transition|None
+    fadeOut = None # type: Transition|None
+    items = None # type: list[FrameItem]
+    folders = None # type: list[ItemFolder]
+    instances = None # type: list[FrameInstance]
+    events = None # type: Events
+    chunks = None # type: ChunkList
+
     def initialize(self):
         self.palette = []
         self.flags = BitDict(
@@ -1223,60 +1272,50 @@ GRAPHIC_SETTINGS = BitDict(
 )
 
 class MFA(DataLoader):
-    mfaVersion = None
-    product = None
-    buildVersion = None
-
-    languageId = None
-    name = None
-    description = None
-    path = None
-
-    fonts = None
-    sounds = None
-    musics = None
-    images = None
-    icons = None
-
-    author = None
-    copyright = None
-    company = None
-    version = None
-
-    windowSize = None
-    borderColor = None
-    displaySettings = None
-    graphicSettings = None
-
-    helpFile = None
-    vitalizePreview = None
-    initialScore = None
-    initialLifes = None
-    frameRate = None
-    buildType = None
-    buildPath = None
-    commandLine = None
-    aboutBox = None
-    binaryFiles = None
-    controls = None
-    menu = None
-    windowMenuIndex = None
-    menuImages = None
-    globalValues = None
-    globalStrings = None
-    globalEvents = None
-    iconImages = None
-    customQualifiers = None
-    extensions = None
-    frames = None
-
     def initialize(self):
-        self.binaryFiles = []
-        self.extensions = []
-        self.frames = []
-        self.iconTypes = []
-        self.displaySettings = DISPLAY_SETTINGS.copy()
-        self.graphicSettings = GRAPHIC_SETTINGS.copy()
+        self.mfaBuild = None # type: int
+        self.product = None # type: int
+        self.buildVersion = None # type: int
+        self.languageId = None # type: int|None
+        self.name = None # type: str
+        self.description = None # type: str
+        self.path = None # type: str
+        self.fonts = None # type: FontBank
+        self.sounds = None # type: SoundBank
+        self.music = None # type: MusicBank
+        self.images = None # type: AGMIBank
+        self.icons = None # type: AGMIBank
+        self.author = None # type: str
+        self.copyright = None # type: str
+        self.company = None # type: str
+        self.version = None # type: str
+        self.windowSize = None # type: tuple[int, int]
+        self.borderColor = None # type: tuple[int, int, int]
+        self.displaySettings = DISPLAY_SETTINGS.copy() # type: BitDict
+        self.graphicSettings = GRAPHIC_SETTINGS.copy() # type: BitDict
+        self.helpFile = None # type: str
+        self.vitalizePreview = None # type: str
+        self.initialScore = None # type: int
+        self.initialLifes = None # type: int
+        self.frameRate = None # type: int
+        self.buildType = None # type: int
+        self.buildPath = None # type: str
+        self.commandLine = None # type: str
+        self.aboutBox = None # type: str
+        self.binaryFiles = [] # type: list[str]
+        self.controls = None # type: Controls
+        self.menu = None # type: AppMenu
+        self.windowMenuIndex = None # type: int
+        self.menuImages = None # type: dict[int, int]
+        self.globalValues = None # type: ValueList
+        self.globalStrings = None # type: ValueList
+        self.globalEvents = None # type: str
+        self.iconImages = None # type: list[int]
+        self.customQualifiers = None # type: list[tuple[str, int]]
+        self.extensions = [] # type: list[tuple[int, str, str, int, str]]
+        self.frames = [] # type: list[Frame]
+        self.iconTypes = [] # type: list
+        self.chunks = None # type: ChunkList
 
     def read(self, reader):
         if reader.read(4) != MFA_MAGIC:
