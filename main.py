@@ -65,14 +65,14 @@ def main():
 
     with io.open("item_data.json", "w", encoding="utf8") as f:
         item_data_sorted = OrderedDict(
-            (key, ctx.item_data[key].to_dict()) for key in natsorted(ctx.item_data.keys())
+            (key, ctx.item_data[key].to_json()) for key in natsorted(ctx.item_data.keys())
         )
         json_out = json.dumps(item_data_sorted, ensure_ascii=False)
         f.write(json_out)
 
     with io.open("anim_data.json", "w", encoding="utf8") as f:
         anim_data_sorted = OrderedDict(
-            (key, ctx.anim_data[key].to_dict()) for key in natsorted(ctx.anim_data.keys())
+            (key, ctx.anim_data[key].to_json()) for key in natsorted(ctx.anim_data.keys())
         )
         json_out = json.dumps(anim_data_sorted, ensure_ascii=False)
         f.write(json_out)
@@ -92,16 +92,19 @@ def process_frame_item(ctx, item):
     item_data = ItemData()
 
     n_values = len(loader.values.items)
+    offset_x = 0
+    offset_y = 0
     if n_values > 0:
-        offset_x = loader.values.items[0]
-        if offset_x.name not in ["X Offset", "OffsetX", "OrginX"]:
-            print(item.name + " has alterable value A named " + offset_x.name)
-        item_data.offset_x = offset_x.value
+        alterable_value = loader.values.items[0]
+        if alterable_value.name not in ["X Offset", "OffsetX", "OrginX"]:
+            print(item.name + " has alterable value A named " + alterable_value.name)
+        offset_x = alterable_value.value
     if n_values > 1:
-        offset_y = loader.values.items[1]
-        if offset_y.name not in ["Y Offset", "OffsetY", "OrginY"]:
-            print(item.name + " has alterable value B named " + offset_y.name)
-        item_data.offset_y = offset_y.value
+        alterable_value = loader.values.items[1]
+        if alterable_value.name not in ["Y Offset", "OffsetY", "OrginY"]:
+            print(item.name + " has alterable value B named " + alterable_value.name)
+        offset_y = alterable_value.value
+    item_data.offset = (offset_x, offset_y)
 
     ctx.item_data[item.name] = item_data
 
@@ -321,16 +324,10 @@ def mmf_str_to_unicode(s):
 
 class ItemData:
     def __init__(self):
-        self.offset_x = None # type: int|None
-        self.offset_y = None # type: int|None
+        self.offset = (0, 0) # type: tuple[int, int]
 
-    def to_dict(self):
-        d = OrderedDict()
-        if self.offset_x is not None:
-            d["offsetX"] = self.offset_x
-        if self.offset_y is not None:
-            d["offsetY"] = self.offset_y
-        return d
+    def to_json(self):
+        return self.offset
 
 class AnimData:
     def __init__(self):
@@ -343,7 +340,7 @@ class AnimData:
         self.min_speed = 0 # type: int
         self.max_speed = 0 # type: int
 
-    def to_dict(self):
+    def to_json(self):
         d = OrderedDict()
         d["frameCount"] = self.frame_count
         d["frameSize"] = self.frame_size
