@@ -1,25 +1,34 @@
-# Run with Python 3
+# Deletes all build artifacts
 
-import glob
 import os
 import shutil
 
-for path in glob.glob("./**/*.pyx", recursive=True):
-    (prefix, _) = os.path.splitext(path)
-    cpp = prefix + ".cpp"
-    if os.path.isfile(cpp):
-        os.unlink(cpp)
-    pyd = prefix + ".pyd"
-    if os.path.isfile(pyd):
-        os.unlink(pyd)
+def clean(path):
+    clean_recursive(path)
 
-for path in glob.glob("./**/*.pyc", recursive=True):
-    if os.path.isfile(path):
-        os.unlink(path)
+    build_dir = os.path.join(path, "build")
+    if os.path.isdir(build_dir):
+        shutil.rmtree(build_dir)
 
-for path in glob.glob("./**/__pycache__", recursive=True):
-    if os.path.isdir(path):
-        shutil.rmtree(path)
+def clean_recursive(dir_path):
+    for name in os.listdir(dir_path):
+        full_path = os.path.join(dir_path, name)
 
-if os.path.isdir("./build"):
-    shutil.rmtree("./build")
+        if os.path.isdir(full_path):
+            if name == "__pycache__":
+                shutil.rmtree(full_path)
+            else:
+                clean_recursive(full_path)
+            continue
+
+        (prefix, ext) = os.path.splitext(full_path)
+        ext = ext.lower()
+        print(full_path, ext)
+
+        if ext == ".pyc" \
+            or ext == ".pyd" \
+            or (ext == ".cpp" and os.path.isfile(prefix + ".pyx")):
+            os.unlink(full_path)
+
+if __name__ == "__main__":
+    clean("mmfparser")
