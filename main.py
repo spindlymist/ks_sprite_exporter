@@ -87,8 +87,8 @@ def process_frame_item(ctx, item):
         return
 
     object_data = ObjectData()
-
     n_values = len(loader.values.items)
+    
     offset_x = 0
     offset_y = 0
     if n_values > 0:
@@ -102,6 +102,14 @@ def process_frame_item(ctx, item):
             print(item.name + " has alterable value B named " + alterable_value.name)
         offset_y = alterable_value.value
     object_data.offset = (offset_x, offset_y)
+
+    if n_values > 2:
+        alterable_value = loader.values.items[2]
+        if alterable_value.name == "DoesHurt":
+            object_data.does_hurt = alterable_value.value
+
+    object_data.ink_effect = item.inkEffect
+    object_data.ink_effect_param = item.inkEffectParameter
 
     matching_objects = get_matching_objects(object_id, ctx.multiobjects_lookup)
     for (bank, obj) in matching_objects:
@@ -275,7 +283,11 @@ def get_matching_objects(object_id, multiobjects_lookup):
     # type: (tuple[str, str, str], dict[str, dict]) -> list[tuple[str, str]]
     (bank, obj, item_name) = object_id
     animations = multiobjects_lookup.get(item_name)
-    
+
+    # Special case
+    if item_name == "Liquid Lights":
+        return []
+
     if animations is None:
         obj = obj if len(obj) > 0 else item_name
         return [(bank, obj)]
@@ -347,13 +359,46 @@ def dict_sort_and_map(d, map = lambda x: x):
         (key, map(d[key])) for key in natsorted(d.keys())
     )
 
+def clamp(x, lower, upper):
+    return min(max(x, lower), upper)
+
+def trans_to_alpha(t):
+    return clamp((128 - t) * 2, 0, 255)
+
+INK_EFFECT_NAMES = {
+    0: "none",
+    1: "semi-transparent",
+    2: "inverted",
+    3: "xor",
+    4: "and",
+    5: "or",
+    9: "add",
+    10: "monochrome",
+    11: "subtract",
+}
+
 class ObjectData:
     def __init__(self):
         self.offset = (0, 0) # type: tuple[int, int]
+        self.does_hurt = None # type: int|None
+        self.ink_effect = 0 # type: int
+        self.ink_effect_param = 0 # type: int
 
     def to_json(self):
         d = OrderedDict()
         d["offset"] = self.offset
+        if self.does_hurt is not None:
+            d["doesHurt"] = self.does_hurt
+
+        if self.ink_effect > 0:
+            ink_effect = INK_EFFECT_NAMES.get(self.ink_effect)
+            if ink_effect is None:
+                print("Unknown ink effect:", ink_effect)
+            elif ink_effect == "semi-transparent":
+                d["alpha"] = trans_to_alpha(self.ink_effect_param)
+            else:
+                d["blendMode"] = ink_effect
+
         return d
 
 class AnimData:
