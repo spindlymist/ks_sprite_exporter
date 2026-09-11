@@ -19,7 +19,7 @@ class Context:
         self.mfa = mfa # type: MFA
         self.frame = frame # type: Frame
 
-        self.item_data = {} # type: dict[str, ItemData]
+        self.object_data = {} # type: dict[str, ObjectData]
         self.anim_data = {} # type: dict[str, AnimData]
 
         for item in frame.items:
@@ -63,17 +63,14 @@ def main():
         if folder.name in IGNORE_FOLDERS: continue
         process_frame_item(ctx, item)
 
-    with io.open("item_data.json", "w", encoding="utf8") as f:
-        item_data_sorted = OrderedDict(
-            (key, ctx.item_data[key].to_json()) for key in natsorted(ctx.item_data.keys())
-        )
-        json_out = json.dumps(item_data_sorted, ensure_ascii=False)
+    sort_and_jsonify = lambda d: dict_sort_and_map(d, lambda d: d.to_json())
+    with io.open("object_data.json", "w", encoding="utf8") as f:
+        object_data_sorted = dict_sort_and_map(ctx.object_data, sort_and_jsonify)
+        json_out = json.dumps(object_data_sorted, ensure_ascii=False)
         f.write(json_out)
 
     with io.open("anim_data.json", "w", encoding="utf8") as f:
-        anim_data_sorted = OrderedDict(
-            (key, ctx.anim_data[key].to_json()) for key in natsorted(ctx.anim_data.keys())
-        )
+        anim_data_sorted = sort_and_jsonify(ctx.anim_data)
         json_out = json.dumps(anim_data_sorted, ensure_ascii=False)
         f.write(json_out)
 
@@ -89,7 +86,7 @@ def process_frame_item(ctx, item):
         print("Skipping " + item.name)
         return
 
-    item_data = ItemData()
+    object_data = ObjectData()
 
     n_values = len(loader.values.items)
     offset_x = 0
@@ -104,9 +101,13 @@ def process_frame_item(ctx, item):
         if alterable_value.name not in ["Y Offset", "OffsetY", "OrginY"]:
             print(item.name + " has alterable value B named " + alterable_value.name)
         offset_y = alterable_value.value
-    item_data.offset = (offset_x, offset_y)
+    object_data.offset = (offset_x, offset_y)
 
-    ctx.item_data[item.name] = item_data
+    matching_objects = get_matching_objects(object_id, ctx.multiobjects_lookup)
+    for (bank, obj) in matching_objects:
+        if bank not in ctx.object_data:
+            ctx.object_data[bank] = {}
+        ctx.object_data[bank][obj] = object_data
 
     animations = loader.items or []
     for (anim_index, animation) in enumerate(animations):
@@ -270,6 +271,24 @@ def parse_item_name(item_name):
 
     return (bank, obj, name)
 
+def get_matching_objects(object_id, multiobjects_lookup):
+    # type: (tuple[str, str, str], dict[str, dict]) -> list[tuple[str, str]]
+    (bank, obj, item_name) = object_id
+    animations = multiobjects_lookup.get(item_name)
+    
+    if animations is None:
+        obj = obj if len(obj) > 0 else item_name
+        return [(bank, obj)]
+
+    matching_objects = set()
+    for animation in animations.values():
+        for direction in animation.values():
+            bank = str(direction["bank"])
+            obj = str(direction["object"])
+            matching_objects.add((bank, obj))
+
+    return list(matching_objects)
+
 def get_output_name(
     bank, # type: str
     obj, # type: str
@@ -322,12 +341,20 @@ def mmf_str_to_unicode(s):
     # type: (str) -> str
     return s.decode('cp1252')
 
-class ItemData:
+def dict_sort_and_map(d, map = lambda x: x):
+    # type (dict) -> OrderedDict
+    return OrderedDict(
+        (key, map(d[key])) for key in natsorted(d.keys())
+    )
+
+class ObjectData:
     def __init__(self):
         self.offset = (0, 0) # type: tuple[int, int]
 
     def to_json(self):
-        return self.offset
+        d = OrderedDict()
+        d["offset"] = self.offset
+        return d
 
 class AnimData:
     def __init__(self):
