@@ -1,13 +1,17 @@
 from __future__ import print_function
+from collections import OrderedDict
+import io
 import json
 import os
 import shutil
 import sys
 
+from natsort import natsorted
+from PIL import Image
+
 from mmfparser.bytereader import ByteReader
 from mmfparser.data.mfa import MFA, Animation, AnimationObject, Frame, FrameItem, ItemFolder
 from mmfparser.data.mfaloaders.imagebank import ImageItemTypeStub as ImageItem
-from PIL import Image
 
 class Context:
     def __init__(self, mfa, frame):
@@ -15,8 +19,8 @@ class Context:
         self.mfa = mfa # type: MFA
         self.frame = frame # type: Frame
 
-        self.item_data = {} # type: dict[str, dict]
-        self.anim_data = {} # type: dict[str, dict]
+        self.item_data = {} # type: dict[str, ItemData]
+        self.anim_data = {} # type: dict[str, AnimData]
 
         for item in frame.items:
             item.name = mmf_str_to_unicode(item.name)
@@ -59,10 +63,19 @@ def main():
         if folder.name in IGNORE_FOLDERS: continue
         process_frame_item(ctx, item)
 
-    with open("item_data.json", "w") as f:
-        json.dump(ctx.item_data, f)
-    with open("anim_data.json", "w") as f:
-        json.dump(ctx.anim_data, f)
+    with io.open("item_data.json", "w", encoding="utf8") as f:
+        item_data_sorted = OrderedDict(
+            (key, ctx.item_data[key].to_dict()) for key in natsorted(ctx.item_data.keys())
+        )
+        json_out = json.dumps(item_data_sorted, ensure_ascii=False)
+        f.write(json_out)
+
+    with io.open("anim_data.json", "w", encoding="utf8") as f:
+        anim_data_sorted = OrderedDict(
+            (key, ctx.anim_data[key].to_dict()) for key in natsorted(ctx.anim_data.keys())
+        )
+        json_out = json.dumps(anim_data_sorted, ensure_ascii=False)
+        f.write(json_out)
 
 def process_frame_item(ctx, item):
     # type: (Context, FrameItem) -> None
@@ -76,19 +89,19 @@ def process_frame_item(ctx, item):
         print("Skipping " + item.name)
         return
 
-    item_data = {}
+    item_data = ItemData()
 
     n_values = len(loader.values.items)
     if n_values > 0:
-        offsetX = loader.values.items[0]
-        if offsetX.name not in ["X Offset", "OffsetX", "OrginX"]:
-            print(item.name + " has alterable value A named " + offsetX.name)
-        item_data["offsetX"] = offsetX.value
+        offset_x = loader.values.items[0]
+        if offset_x.name not in ["X Offset", "OffsetX", "OrginX"]:
+            print(item.name + " has alterable value A named " + offset_x.name)
+        item_data.offset_x = offset_x.value
     if n_values > 1:
-        offsetY = loader.values.items[1]
-        if offsetY.name not in ["Y Offset", "OffsetY", "OrginY"]:
-            print(item.name + " has alterable value B named " + offsetY.name)
-        item_data["offsetY"] = offsetY.value
+        offset_y = loader.values.items[1]
+        if offset_y.name not in ["Y Offset", "OffsetY", "OrginY"]:
+            print(item.name + " has alterable value B named " + offset_y.name)
+        item_data.offset_y = offset_y.value
 
     ctx.item_data[item.name] = item_data
 
@@ -120,51 +133,52 @@ def process_animation(
             image_info = ctx.image_info_lookup[frame_handle]
             frame_extents = calc_frame_extents(image_info)
             extents.append(frame_extents)
-
-        # Expand the frame size to account for the largest offsets
         extents_top_min   = min(top   for (top, right, bot, left) in extents)
         extents_right_max = max(right for (top, right, bot, left) in extents)
         extents_bot_max   = max(bot   for (top, right, bot, left) in extents)
         extents_left_min  = min(left  for (top, right, bot, left) in extents)
-        frame_width = extents_right_max + abs(extents_left_min)
-        frame_height = extents_bot_max + abs(extents_top_min)
+
+        # Calculate the hotspot position and frame size that accommodates all frames
+        hotspot_x = abs(extents_left_min)
+        hotspot_y = abs(extents_top_min)
+        frame_width = hotspot_x + extents_right_max
+        frame_height = hotspot_y + extents_bot_max
 
         # Create the spritesheet
         total_width = n_frames * frame_width
         spritesheet = Image.new("RGBA", (total_width, frame_height), (0, 0, 0, 0))
 
+        action_points = []
+
         # Copy each frame into the spritesheet
+        # Also calculate and record the action point for each frame
         for (frame_index, frame_handle) in enumerate(direction.frames):
             image_info = ctx.image_info_lookup[frame_handle]
             image = get_image(ctx, frame_handle)
-
-            (top, right, bot, left) = extents[frame_index]
-
-            width = right - left
-            height = bot - top
-            if width != image.width or height != image.height:
-                align_right = image_info.xHotspot < 0
-                align_bot = image_info.yHotspot < 0
-                image = image_resize_canvas(image, width, height, align_right, align_bot)
             
-            offset_x = left - extents_left_min
-            offset_y = top - extents_top_min
-
             frame_origin_x = frame_index * frame_width
-            spritesheet.paste(image, (frame_origin_x + offset_x, offset_y))
+            top_left_x = hotspot_x - image_info.xHotspot
+            top_left_y = hotspot_y - image_info.yHotspot
+            
+            action_x = top_left_x + image_info.actionX
+            action_y = top_left_y + image_info.actionY
+            action_points.append((action_x, action_y))
+
+            spritesheet.paste(image, (frame_origin_x + top_left_x, top_left_y))
 
         output_name = get_output_name(bank, obj, object_name, anim_name, direction.index, ctx.multiobjects_lookup)
         if output_name is None:
             continue
 
-        if direction.minSpeed != direction.maxSpeed:
-            print("Speeds differ for", object_name, anim_name, direction.index)
-
-        anim_data = {
-            "speed": direction.minSpeed,
-            "repeat": direction.repeat,
-            "backTo": direction.backTo,
-        }
+        anim_data = AnimData()
+        anim_data.frame_count = n_frames
+        anim_data.frame_size = (frame_width, frame_height)
+        anim_data.min_speed = direction.minSpeed
+        anim_data.max_speed = direction.maxSpeed
+        anim_data.repeat = direction.repeat
+        anim_data.back_to = direction.backTo
+        anim_data.hotspot = (hotspot_x, hotspot_y)
+        anim_data.action_points = action_points
         ctx.anim_data[output_name] = anim_data
 
         spritesheet.save("output/" + output_name)
@@ -297,26 +311,6 @@ def get_output_name(
 
     return output_name + ".png"
 
-def image_resize_canvas(
-    image, # type: Image.Image
-    new_width, # type: int
-    new_height, # type: int
-    align_right, # type: bool
-    align_bot # type: bool
-):
-    # type: (...) -> Image.Image
-    new_image = Image.new("RGBA", (new_width, new_height), (0, 0, 0, 0))
-    if align_right:
-        x = new_width - image.width
-    else:
-        x = 0
-    if align_bot:
-        y = new_height - image.height
-    else:
-        y = 0
-    new_image.paste(image, (x, y))
-    return new_image
-
 def convert_to_snake_case(s):
     # type: (str) -> str
     return "_".join(part.lower() for part in s.split(" "))
@@ -324,6 +318,50 @@ def convert_to_snake_case(s):
 def mmf_str_to_unicode(s):
     # type: (str) -> str
     return s.decode('cp1252')
+
+class ItemData:
+    def __init__(self):
+        self.offset_x = None # type: int|None
+        self.offset_y = None # type: int|None
+
+    def to_dict(self):
+        d = OrderedDict()
+        if self.offset_x is not None:
+            d["offsetX"] = self.offset_x
+        if self.offset_y is not None:
+            d["offsetY"] = self.offset_y
+        return d
+
+class AnimData:
+    def __init__(self):
+        self.frame_count = 0 # type: int
+        self.frame_size = (0, 0) # type: tuple[int, int]
+        self.repeat = 0 # type: int
+        self.back_to = 0 # type: int
+        self.hotspot = (0, 0) # type: tuple[int, int]
+        self.action_points = [] # type: list[tuple[int, int]]
+        self.min_speed = 0 # type: int
+        self.max_speed = 0 # type: int
+
+    def to_dict(self):
+        d = OrderedDict()
+        d["frameCount"] = self.frame_count
+        d["frameSize"] = self.frame_size
+        if self.min_speed == self.max_speed:
+            d["speed"] = self.min_speed
+        else:
+            d["minSpeed"] = self.min_speed
+            d["maxSpeed"] = self.max_speed
+        d["repeat"] = self.repeat
+        d["backTo"] = self.back_to
+        d["hotspot"] = self.hotspot
+
+        if len(set(self.action_points)) == 1:
+            d["actionPoint"] = self.action_points[0]
+        else:
+            d["actionPoints"] = self.action_points
+
+        return d
 
 if __name__ == "__main__":
     main()
