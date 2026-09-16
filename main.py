@@ -56,11 +56,7 @@ def main():
         shutil.rmtree("output")
     os.mkdir("output")
 
-    IGNORE_FOLDERS = ["Bars, credits", "Movement Engine", "System Engine", "Map Inv"]
-
     for item in frame.items:
-        folder = ctx.folder_lookup[item.handle]
-        if folder.name in IGNORE_FOLDERS: continue
         process_frame_item(ctx, item)
 
     sort_and_jsonify = lambda d: dict_sort_and_map(d, lambda d: d.to_json())
@@ -74,17 +70,34 @@ def main():
         json_out = json.dumps(anim_data_sorted, ensure_ascii=False)
         f.write(json_out)
 
+IGNORE_ITEMS = [
+    ("7: Effects", "Nature"),
+    ("Bars, credits", "Object Bar"),
+    ("Movement Engine", "KBD"),
+    ("Movement Engine", "Physics"),
+    ("System Engine", "Extras"),
+    ("System Engine", "Flag Storage"),
+    ("System Engine", "Frame Reset Countdown"),
+    ("System Engine", "Render Quick Value Storage"),
+    ("System Engine", "Screen Values"),
+    ("System Engine", "Sound Values (Global)"),
+]
+
 def process_frame_item(ctx, item):
     # type: (Context, FrameItem) -> None
+    folder = ctx.folder_lookup[item.handle]
+    if (folder.name, item.name) in IGNORE_ITEMS:
+        print("{0}/{1} is ignored".format(folder.name, item.name))
+        return
+    
     if not isinstance(item.loader, AnimationObject):
-        print("Skipping " + item.name)
+        print("{0}/{1} has loader type {2}".format(folder.name, item.name, item.loader.__class__.__name__))
         return
     loader = item.loader # type: AnimationObject
 
     object_id = parse_item_name(item.name)
     if object_id is None:
-        print("Skipping " + item.name)
-        return
+        object_id = (folder.name, item.name, item.name)
 
     object_data = ObjectData()
     n_values = len(loader.values.items)
@@ -331,10 +344,10 @@ def get_output_name(
             print('Lookup failed on name="{0}" anim="{1}" dir={2}'.format(item_name, anim_name, direction))
             return None
 
-    if bank == "Child":
-        output_name = "child_"
-    else:
+    if is_int(bank):
         output_name = "b{0}_o{1}_".format(bank, obj)
+    else:
+        output_name = "{0}_".format(convert_to_snake_case(bank))
     output_name += convert_to_snake_case(item_name)
     if variant is not None:
         output_name += "_" + convert_to_snake_case(variant)
@@ -344,6 +357,13 @@ def get_output_name(
         output_name += "_" + str(direction)
 
     return output_name + ".png"
+
+def is_int(x):
+    try:
+        _ = int(x)
+        return True
+    except:
+        return False
 
 def convert_to_snake_case(s):
     # type: (str) -> str
