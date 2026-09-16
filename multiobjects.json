@@ -15,22 +15,22 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 14,
+                "object": "14-17",
                 "variant": "Spot"
             },
             "1": {
                 "bank": 0,
-                "object": 14,
+                "object": "14-17",
                 "variant": "Floor"
             },
             "2": {
                 "bank": 0,
-                "object": 14,
+                "object": "14-17",
                 "variant": "Circle"
             },
             "3": {
                 "bank": 0,
-                "object": 14,
+                "object": "14-17",
                 "variant": "Square"
             }
         }
@@ -39,7 +39,7 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 17
+                "object": "17-19"
             }
         }
     },
@@ -47,7 +47,7 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 26
+                "object": "27-28"
             }
         }
     },
@@ -55,7 +55,7 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 29
+                "object": "29-31"
             }
         }
     },
@@ -63,23 +63,49 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 32,
+                "object": "32-34",
                 "variant": "Spot"
             },
             "1": {
                 "bank": 0,
-                "object": 32,
+                "object": "32-34",
                 "variant": "Floor"
             },
             "2": {
                 "bank": 0,
-                "object": 32,
+                "object": "32-34",
                 "variant": "Circle"
             },
             "3": {
                 "bank": 0,
-                "object": 32,
+                "object": "32-34",
                 "variant": "Square"
+            }
+        }
+    },
+    "AreaAmbiA": {
+        "Stopped": {
+            "0": {
+                "bank": 0,
+                "object": 37
+            },
+            "16": {
+                "bank": 0,
+                "object": 39,
+                "rename": "MuteAmbiA"
+            }
+        }
+    },
+    "AreaAmbiB": {
+        "Stopped": {
+            "0": {
+                "bank": 0,
+                "object": 38
+            },
+            "16": {
+                "bank": 0,
+                "object": 40,
+                "rename": "MuteAmbiB"
             }
         }
     },
@@ -87,7 +113,7 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 42
+                "object": "42-44"
             }
         }
     },
@@ -95,7 +121,7 @@
         "Stopped": {
             "0": {
                 "bank": 0,
-                "object": 45
+                "object": "45-47"
             }
         }
     },
@@ -285,19 +311,57 @@
         "Stopped": {
             "0": {
                 "bank": 1,
-                "object": 5
+                "object": 5,
+                "variant": "Light",
+                "rename": "Multiple Liquids"
             }
         },
         "Walking": {
             "0": {
                 "bank": 1,
-                "object": 10
+                "object": "10,12",
+                "variant": "Light",
+                "rename": "Multiple Liquids"
             }
         },
         "Running": {
             "0": {
                 "bank": 1,
-                "object": 22
+                "object": 22,
+                "variant": "Light",
+                "rename": "Multiple Liquids"
+            }
+        }
+    },
+    "Up Spikes": {
+        "*": {
+            "*": {
+                "bank": 6,
+                "object": "10,14"
+            }
+        }
+    },
+    "Down Spikes": {
+        "*": {
+            "*": {
+                "bank": 6,
+                "object": "11,15"
+            }
+        }
+    },
+    "Left Spikes": {
+        "*": {
+            "*": {
+                "bank": 6,
+                "object": "12,16"
+            }
+        }
+    },
+    "Right Spikes": {
+        "*": {
+            "*": {
+                "bank": 6,
+                "object": "13,17"
             }
         }
     },
@@ -402,48 +466,10 @@
         }
     },
     "Password Blocks": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 15,
-                "object": 13
-            },
-            "1": {
-                "bank": 15,
-                "object": 14
-            },
-            "2": {
-                "bank": 15,
-                "object": 15
-            },
-            "3": {
-                "bank": 15,
-                "object": 16
-            },
-            "4": {
-                "bank": 15,
-                "object": 17
-            },
-            "5": {
-                "bank": 15,
-                "object": 18
-            },
-            "6": {
-                "bank": 15,
-                "object": 19
-            },
-            "7": {
-                "bank": 15,
-                "object": 20
-            },
-            "8": {
-                "bank": 15,
-                "object": 21
-            }
-        },
-        "Walking": {
-            "0": {
-                "bank": 15,
-                "object": 13
+                "object": "13-21"
             }
         }
     },
@@ -500,6 +526,20 @@
             "16": {
                 "bank": 15,
                 "object": 38
+            }
+        }
+    },
+    "Crumble Child": {
+        "Stopped": {
+            "0": {
+                "bank": 15,
+                "object": 37,
+                "variant": "Child"
+            },
+            "16": {
+                "bank": 15,
+                "object": 38,
+                "variant": "Child"
             }
         }
     },
@@ -615,9 +655,19 @@
     },
     "JumpThrough": {
         "Stopped": {
-            "16": {
+            "0": {
                 "bank": 16,
-                "object": 29
+                "object": "29-30"
+            }
+        }
+    },
+    "JumpThrough Child": {
+        "Stopped": {
+            "0": {
+                "bank": 16,
+                "object": 30,
+                "variant": "Child",
+                "rename": "JumpThrough"
             }
         }
     },
@@ -625,7 +675,7 @@
         "Stopped": {
             "0": {
                 "bank": 19,
-                "object": 51
+                "object": "51-150"
             }
         }
     },
@@ -633,31 +683,31 @@
         "*": {
             "0": {
                 "bank": 19,
-                "object": 151
+                "object": "151-157"
             },
             "1": {
                 "bank": 19,
-                "object": 158
+                "object": "158-164"
             },
             "2": {
                 "bank": 19,
-                "object": 165
+                "object": "165-171"
             },
             "3": {
                 "bank": 19,
-                "object": 172
+                "object": "172-178"
             },
             "4": {
                 "bank": 19,
-                "object": 179
+                "object": "179-185"
             },
             "5": {
                 "bank": 19,
-                "object": 186
+                "object": "186-192"
             },
             "6": {
                 "bank": 19,
-                "object": 193
+                "object": "193-199"
             }
         }
     }

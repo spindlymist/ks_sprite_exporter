@@ -10,7 +10,7 @@ from natsort import natsorted
 from PIL import Image
 
 from mmfparser.bytereader import ByteReader
-from mmfparser.data.mfa import MFA, Animation, AnimationObject, Frame, FrameItem, ItemFolder
+from mmfparser.data.mfa import MFA, Active, Animation, AnimationObject, Frame, FrameItem, ItemFolder
 from mmfparser.data.mfaloaders.imagebank import ImageItemTypeStub as ImageItem
 
 class Context:
@@ -90,7 +90,7 @@ def process_frame_item(ctx, item):
         print("{0}/{1} is ignored".format(folder.name, item.name))
         return
     
-    if not isinstance(item.loader, AnimationObject):
+    if not isinstance(item.loader, Active):
         print("{0}/{1} has loader type {2}".format(folder.name, item.name, item.loader.__class__.__name__))
         return
     loader = item.loader # type: AnimationObject
@@ -101,7 +101,7 @@ def process_frame_item(ctx, item):
 
     object_data = ObjectData()
     n_values = len(loader.values.items)
-    
+
     offset_x = 0
     offset_y = 0
     if n_values > 0:
@@ -287,9 +287,6 @@ def parse_item_name(item_name):
     else:
         return None
 
-    if "-" in obj:
-        obj = obj.split("-")[0]
-
     return (bank, obj, name)
 
 def get_matching_objects(object_id, multiobjects_lookup):
@@ -314,6 +311,13 @@ def get_matching_objects(object_id, multiobjects_lookup):
 
     return list(matching_objects)
 
+ENGINE_FOLDERS = [
+    "Bars, credits",
+    "Map Inv",
+    "Movement Engine",
+    "System Engine",
+]
+
 def get_output_name(
     bank, # type: str
     obj, # type: str
@@ -327,24 +331,30 @@ def get_output_name(
     omit_direction = False
     variant = None
 
-    if obj == "x":
-        try:
-            animations = multiobjects_lookup[item_name]
-            if '*' in animations:
-                directions = animations['*']
-            else:
-                directions = animations[anim_name]
-                omit_animation = True
-            omit_direction = True
+    try:
+        animations = multiobjects_lookup[item_name]
+        if '*' in animations:
+            directions = animations['*']
+        else:
+            directions = animations[anim_name]
+            omit_animation = True
+        if '*' in directions:
+            bank_obj = directions['*']
+        else:
             bank_obj = directions[str(direction)]
-            bank = bank_obj["bank"]
-            obj = bank_obj["object"]
-            variant = bank_obj.get("variant", None)
-        except:
+            omit_direction = True
+        bank = bank_obj["bank"]
+        obj = bank_obj["object"]
+        variant = bank_obj.get("variant", None)
+        item_name = bank_obj.get("rename", item_name)
+    except:
+        if obj == "x" or "-" in obj:
             print('Lookup failed on name="{0}" anim="{1}" dir={2}'.format(item_name, anim_name, direction))
             return None
 
-    if is_int(bank):
+    if bank in ENGINE_FOLDERS:
+        output_name = ""
+    elif is_intlike(bank):
         output_name = "b{0}_o{1}_".format(bank, obj)
     else:
         output_name = "{0}_".format(convert_to_snake_case(bank))
@@ -358,7 +368,8 @@ def get_output_name(
 
     return output_name + ".png"
 
-def is_int(x):
+def is_intlike(x):
+    # type: (any) -> bool
     try:
         _ = int(x)
         return True
@@ -367,7 +378,46 @@ def is_int(x):
 
 def convert_to_snake_case(s):
     # type: (str) -> str
-    return "_".join(part.lower() for part in s.split(" "))
+    return "_".join(part.lower() for part in super_split(s))
+
+def super_split(s):
+    # type: (str) -> list[str]
+    '''Splits on spaces, numbers, and capital letters.'''
+
+    start = 0
+    parts = []
+    in_digit_sequence = False
+
+    for (i, char) in enumerate(s):
+        is_new_part = False
+        is_digit = char.isdigit()
+
+        if in_digit_sequence:
+            if not is_digit:
+                is_new_part = True
+                in_digit_sequence = False
+        elif char == " ":
+            is_new_part = True
+        elif char.isupper():
+            is_new_part = True
+        elif is_digit:
+            is_new_part = True
+            in_digit_sequence = True
+
+        if is_new_part:
+            new_part = s[start:i]
+            if len(new_part) > 0:
+                parts.append(new_part)
+            if char == " ":
+                start = i + 1
+            else:
+                start = i
+
+    last_part = s[start:]
+    if len(last_part) > 0:
+        parts.append(last_part)
+
+    return parts
 
 def mmf_str_to_unicode(s):
     # type: (str) -> str
