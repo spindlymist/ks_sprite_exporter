@@ -1,6 +1,6 @@
 {
     "No Climb": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
                 "object": 11
@@ -12,25 +12,25 @@
         }
     },
     "Dimension Shift": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
-                "object": "14-17",
+                "object": "14-16",
                 "variant": "Spot"
             },
             "1": {
                 "bank": 0,
-                "object": "14-17",
+                "object": "14-16",
                 "variant": "Floor"
             },
             "2": {
                 "bank": 0,
-                "object": "14-17",
+                "object": "14-16",
                 "variant": "Circle"
             },
             "3": {
                 "bank": 0,
-                "object": "14-17",
+                "object": "14-16",
                 "variant": "Square"
             }
         }
@@ -60,7 +60,7 @@
         }
     },
     "Trigger": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
                 "object": "32-34",
@@ -84,7 +84,7 @@
         }
     },
     "AreaAmbiA": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
                 "object": 37
@@ -97,7 +97,7 @@
         }
     },
     "AreaAmbiB": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
                 "object": 38
@@ -126,7 +126,7 @@
         }
     },
     "ForceKey": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 0,
                 "object": 255
@@ -163,49 +163,49 @@
     },
     "Multiple Liquids": {
         "Stopped": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 1
             }
         },
         "Walking": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 2
             }
         },
         "Running": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 5
             }
         },
         "Bouncing": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 10
             }
         },
         "Launching": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 12
             }
         },
         "Jumping": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 14
             }
         },
         "Falling": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 19
             }
         },
         "Climbing": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 22
             }
@@ -213,31 +213,31 @@
     },
     "Multiple Waterfalls": {
         "Stopped": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 3
             }
         },
         "Walking": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 4
             }
         },
         "Running": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 15
             }
         },
         "Bouncing": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 20
             }
         },
         "Launching": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 23
             }
@@ -245,19 +245,19 @@
     },
     "Other Water Elements": {
         "Stopped": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 6
             }
         },
         "Walking": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 13
             }
         },
         "Running": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 16
             }
@@ -296,7 +296,7 @@
         }
     },
     "SwimArea": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 1,
                 "object": 26
@@ -309,7 +309,7 @@
     },
     "Liquid Lights": {
         "Stopped": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 5,
                 "variant": "Light",
@@ -317,7 +317,7 @@
             }
         },
         "Walking": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": "10,12",
                 "variant": "Light",
@@ -325,7 +325,7 @@
             }
         },
         "Running": {
-            "0": {
+            "*": {
                 "bank": 1,
                 "object": 22,
                 "variant": "Light",
@@ -366,7 +366,7 @@
         }
     },
     "New Path Marker": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 12,
                 "object": 18
@@ -386,7 +386,7 @@
         }
     },
     "Lasers": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 13,
                 "object": 7
@@ -398,7 +398,7 @@
         }
     },
     "Constant Lasers": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 13,
                 "object": 9
@@ -410,7 +410,7 @@
         }
     },
     "Multiple Blocks": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 15,
                 "object": 1
@@ -430,7 +430,7 @@
         }
     },
     "Multiple Disappearing Blocks": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 15,
                 "object": 8
@@ -450,7 +450,7 @@
         }
     },
     "LockBlock": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 15,
                 "object": 12
@@ -530,7 +530,7 @@
         }
     },
     "Crumble Child": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 15,
                 "object": 37,
@@ -600,7 +600,7 @@
         }
     },
     "Obstacle Invisible Box": {
-        "Stopped": {
+        "*": {
             "2": {
                 "bank": 16,
                 "object": 19
@@ -656,7 +656,7 @@
         }
     },
     "JumpThrough": {
-        "Stopped": {
+        "*": {
             "0": {
                 "bank": 16,
                 "object": "29-30"
@@ -664,8 +664,8 @@
         }
     },
     "JumpThrough Child": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 16,
                 "object": 30,
                 "variant": "Child",

@@ -70,9 +70,16 @@ def main():
         json_out = json.dumps(anim_data_sorted, ensure_ascii=False)
         f.write(json_out)
 
+IGNORE_FOLDERS =[
+    "Bars, credits"
+]
+
 IGNORE_ITEMS = [
     ("7: Effects", "Nature"),
-    ("Bars, credits", "Object Bar"),
+    ("Map Inv", "Gamma Tint"),
+    ("Map Inv", "Map Tint"),
+    ("Map Inv", "PinkPixel"),
+    ("Map Inv", "Screen Tint"),
     ("Movement Engine", "KBD"),
     ("Movement Engine", "Physics"),
     ("System Engine", "Extras"),
@@ -83,10 +90,17 @@ IGNORE_ITEMS = [
     ("System Engine", "Sound Values (Global)"),
 ]
 
+ENGINE_FOLDERS = [
+    "Map Inv",
+    "Movement Engine",
+    "System Engine",
+]
+
 def process_frame_item(ctx, item):
     # type: (Context, FrameItem) -> None
     folder = ctx.folder_lookup[item.handle]
-    if (folder.name, item.name) in IGNORE_ITEMS:
+    if folder.name in IGNORE_FOLDERS \
+        or (folder.name, item.name) in IGNORE_ITEMS:
         print("{0}/{1} is ignored".format(folder.name, item.name))
         return
     
@@ -97,7 +111,9 @@ def process_frame_item(ctx, item):
 
     object_id = parse_item_name(item.name)
     if object_id is None:
-        object_id = (folder.name, item.name, item.name)
+        bank = "engine" if folder.name in ENGINE_FOLDERS else folder.name
+        obj = item.name
+        object_id = (bank, obj, item.name)
 
     object_data = ObjectData()
     n_values = len(loader.values.items)
@@ -126,27 +142,46 @@ def process_frame_item(ctx, item):
 
     matching_objects = get_matching_objects(object_id, ctx.multiobjects_lookup)
     for (bank, obj) in matching_objects:
+        if not is_intlike(bank):
+            bank = convert_to_snake_case(bank)
+            obj = convert_to_snake_case(obj)
         if bank not in ctx.object_data:
             ctx.object_data[bank] = {}
         ctx.object_data[bank][obj] = object_data
 
     animations = loader.items or []
+
+    n_animations = 0
+    for animation in animations:
+        if anim_is_used(animation):
+            n_animations += 1
+    has_multiple_animations = n_animations > 1
+            
     for (anim_index, animation) in enumerate(animations):
-        process_animation(ctx, anim_index, animation, object_id)
+        process_animation(ctx, anim_index, animation, object_id, has_multiple_animations)
+
+def anim_is_used(animation):
+    # type: (Animation) -> bool
+    return len(animation.directions) > 0 \
+        and any(len(dir.frames) > 0 for dir in animation.directions)
 
 def process_animation(
     ctx, # type: Context
     anim_index, # type: int
     animation, # type: Animation
-    object_id # type: tuple[str, str, str]
+    object_id, # type: tuple[str, str, str]
+    has_multiple_animations # type: bool
 ):
-    has_frames = \
-        len(animation.directions) > 0 \
-        and any(len(dir.frames) > 0 for dir in animation.directions)
-    if not has_frames: return
+    if not anim_is_used(animation): return
 
     (bank, obj, object_name) = object_id
     anim_name = get_anim_name(animation, anim_index)
+
+    n_directions = 0
+    for direction in animation.directions:
+        if len(direction.frames) > 0:
+            n_directions += 1
+    has_multiple_directions = n_directions > 1
 
     for direction in animation.directions:
         n_frames = len(direction.frames)
@@ -191,8 +226,18 @@ def process_animation(
 
             spritesheet.paste(image, (frame_origin_x + top_left_x, top_left_y))
 
-        output_name = get_output_name(bank, obj, object_name, anim_name, direction.index, ctx.multiobjects_lookup)
+        output_name = get_output_name(
+            bank,
+            obj,
+            object_name,
+            anim_name,
+            direction.index,
+            has_multiple_animations,
+            has_multiple_directions,
+            ctx.multiobjects_lookup
+        )
         if output_name is None:
+            print("Warning: no output for", bank, obj, object_name, anim_name, direction.index)
             continue
 
         anim_data = AnimData()
@@ -206,6 +251,9 @@ def process_animation(
         anim_data.action_points = action_points
         ctx.anim_data[output_name] = anim_data
 
+        output_path = os.path.join("output", output_name)
+        if os.path.exists(output_path):
+            print("Warning: {0} will be overwritten".format(output_name))
         spritesheet.save("output/" + output_name)
 
 def calc_frame_extents(image_info):
@@ -294,10 +342,6 @@ def get_matching_objects(object_id, multiobjects_lookup):
     (bank, obj, item_name) = object_id
     animations = multiobjects_lookup.get(item_name)
 
-    # Special case
-    if item_name == "Liquid Lights":
-        return []
-
     if animations is None:
         obj = obj if len(obj) > 0 else item_name
         return [(bank, obj)]
@@ -307,16 +351,30 @@ def get_matching_objects(object_id, multiobjects_lookup):
         for direction in animation.values():
             bank = str(direction["bank"])
             obj = str(direction["object"])
+            variant = direction.get("variant", None)
+            if variant is not None:
+                obj = "{0}_{1}".format(obj, convert_to_snake_case(variant))
             matching_objects.add((bank, obj))
 
     return list(matching_objects)
 
-ENGINE_FOLDERS = [
-    "Bars, credits",
-    "Map Inv",
-    "Movement Engine",
-    "System Engine",
-]
+def parse_object_ranges(spec):
+    # type: (str) -> list[int]
+    indices = []
+    index_ranges = spec.split(",")
+
+    for index_range in index_ranges:
+        bounds = index_range.split("-", 1)
+        if len(bounds) == 1:
+            start = int(bounds[0])
+            indices.append(start)
+        elif len(bounds) == 2:
+            start = int(bounds[0])
+            end = int(bounds[1])
+            for i in range(start, end + 1):
+                indices.append(i)
+
+    return indices
 
 def get_output_name(
     bank, # type: str
@@ -324,11 +382,13 @@ def get_output_name(
     item_name, # type: str
     anim_name, # type: str
     direction, # type: int
+    has_multiple_animations, # type: bool
+    has_multiple_directions, # type: bool
     multiobjects_lookup # type: dict[str, dict]
 ):
     # type: (...) -> str|None
-    omit_animation = False
-    omit_direction = False
+    include_animation = has_multiple_animations
+    include_direction = has_multiple_directions
     variant = None
 
     try:
@@ -337,12 +397,12 @@ def get_output_name(
             directions = animations['*']
         else:
             directions = animations[anim_name]
-            omit_animation = True
+            include_animation = False
         if '*' in directions:
             bank_obj = directions['*']
         else:
             bank_obj = directions[str(direction)]
-            omit_direction = True
+            include_direction = False
         bank = bank_obj["bank"]
         obj = bank_obj["object"]
         variant = bank_obj.get("variant", None)
@@ -352,19 +412,21 @@ def get_output_name(
             print('Lookup failed on name="{0}" anim="{1}" dir={2}'.format(item_name, anim_name, direction))
             return None
 
-    if bank in ENGINE_FOLDERS:
+    if bank == "engine":
         output_name = ""
     elif is_intlike(bank):
         output_name = "b{0}_o{1}_".format(bank, obj)
     else:
-        output_name = "{0}_".format(convert_to_snake_case(bank))
+        output_name = convert_to_snake_case(bank) + "_"
     output_name += convert_to_snake_case(item_name)
     if variant is not None:
         output_name += "_" + convert_to_snake_case(variant)
-    if not omit_animation:
+    if include_animation:
         output_name += "_" + convert_to_snake_case(anim_name)
-    if not omit_direction:
+    if include_direction:
         output_name += "_" + str(direction)
+
+    output_name = output_name.replace(',', '_o')
 
     return output_name + ".png"
 
