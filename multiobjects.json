@@ -36,24 +36,24 @@
         }
     },
     "Sign": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 0,
                 "object": "17-19"
             }
         }
     },
     "Detector Targets": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 0,
                 "object": "27-28"
             }
         }
     },
     "Sign Area": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 0,
                 "object": "29-31"
             }
@@ -110,16 +110,16 @@
         }
     },
     "Spawn": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 0,
                 "object": "42-44"
             }
         }
     },
     "Destroy": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 0,
                 "object": "45-47"
             }
@@ -534,12 +534,14 @@
             "0": {
                 "bank": 15,
                 "object": 37,
-                "variant": "Child"
+                "variant": "Child",
+                "rename": "Crumble"
             },
             "16": {
                 "bank": 15,
                 "object": 38,
-                "variant": "Child"
+                "variant": "Child",
+                "rename": "Crumble"
             }
         }
     },
@@ -672,8 +674,8 @@
         }
     },
     "Coins": {
-        "Stopped": {
-            "0": {
+        "*": {
+            "*": {
                 "bank": 19,
                 "object": "51-150"
             }

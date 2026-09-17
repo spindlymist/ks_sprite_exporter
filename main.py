@@ -387,6 +387,7 @@ def super_split(s):
     start = 0
     parts = []
     in_digit_sequence = False
+    last_char_was_lower = False
 
     for (i, char) in enumerate(s):
         is_new_part = False
@@ -398,11 +399,13 @@ def super_split(s):
                 in_digit_sequence = False
         elif char == " ":
             is_new_part = True
-        elif char.isupper():
+        elif char.isupper() and last_char_was_lower:
             is_new_part = True
         elif is_digit:
             is_new_part = True
             in_digit_sequence = True
+
+        last_char_was_lower = char.islower()
 
         if is_new_part:
             new_part = s[start:i]
