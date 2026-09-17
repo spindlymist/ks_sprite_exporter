@@ -468,7 +468,7 @@ class ObjectData:
             if ink_effect is None:
                 print("Unknown ink effect:", ink_effect)
             elif ink_effect == "semi-transparent":
-                d["alpha"] = trans_to_alpha(self.ink_effect_param)
+                d["transparency"] = self.ink_effect_param
             else:
                 d["blendMode"] = ink_effect
 
